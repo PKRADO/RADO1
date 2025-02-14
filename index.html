@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHÒNG KHÁM NHI RADO</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 2em;
+            color: #333;
+        }
+
+        .purple-text {
+            color: #6a0dad;
+            font-size: 0.75em; /* 3/4 cỡ chữ thông thường */
+        }
+
+        #phoneNumber {
+            width: 80%;
+            padding: 10px;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+
+        #bookButton {
+            font-size: 2em;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #bookButton:hover {
+            background-color: #218838;
+        }
+
+        #numberGrid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .number {
+            font-size: 4em;
+            padding: 20px;
+            background-color: #28a745;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .number.booked {
+            background-color: red;
+            cursor: not-allowed;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #successMessage {
+            margin-top: 20px;
+        }
+
+        #successNumberLabel {
+            font-size: 1.5em; /* Giảm kích thước chữ để thu hẹp khoảng cách */
+            color: #333;
+            margin-bottom: 5px; /* Thu hẹp khoảng cách */
+        }
+
+        #successNumber {
+            font-size: 6em; /* Giảm kích thước chữ để thu hẹp khoảng cách */
+            color: #28a745;
+            margin: 0; /* Loại bỏ margin để sát gần hơn */
+        }
+
+        #successDateTime {
+            font-size: 1.2em; /* Giảm kích thước chữ để thu hẹp khoảng cách */
+            color: #333;
+            margin-top: 5px; /* Thu hẹp khoảng cách */
+        }
+
+        #qrCode {
+            margin-top: 10px;
+        }
+
+        .blue-note {
+            color: blue;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .red-note {
+            color: red;
+            font-weight: bold;
+            margin-top: 5px; /* Thu hẹp khoảng cách */
+        }
+
+        #adminPanel {
+            margin-top: 20px;
+        }
+
+        #adminControls {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Tiêu đề -->
+        <h1>PHÒNG KHÁM NHI RADO</h1>
+        <p class="purple-text">Bạn muốn khám muộn hơn thì sau nhập số điện thoại bạn nhấn thêm số thứ tự càng lớn thì càng muộn.</p>
+
+        <!-- Ô nhập số điện thoại -->
+        <input type="text" id="phoneNumber" placeholder="Nhập số điện thoại (10 số)" maxlength="10">
+
+        <!-- Nút đặt số -->
+        <button id="bookButton">ĐẶT SỐ</button>
+
+        <!-- Thông báo đặt thành công -->
+        <div id="successMessage" class="hidden">
+            <p id="successNumberLabel">SỐ THỨ TỰ LÀ:</p>
+            <h2 id="successNumber"></h2>
+            <p id="successDateTime"></p>
+            <img id="qrCode" alt="QR Code">
+            <p class="blue-note">Chụp lại màn hình số thứ tự này mang đến phòng khám RADO</p>
+            <p class="red-note">Nếu khám 2 bé bạn phải đặt 2 số thứ tự gần nhau</p>
+            <p>Số điện thoại: <span id="successPhone"></span></p>
+            <p class="red-note">
+                Lưu ý: Đặt số bạn hãy đến đúng thời gian theo số, đến muộn bạn sẽ bạn đợi lâu hơn rất nhiều. 
+                Nếu không đến bạn gọi điện báo cho phòng khám trong khung giờ khám, nếu không báo lần sau bạn bị khóa đặt số online. 
+                THỜI GIAN số khám của bạn có thể có DUNG SAI mong bạn thông cảm.
+            </p>
+        </div>
+
+        <!-- Bảng số thứ tự -->
+        <div id="numberGrid"></div>
+
+        <!-- Phần quản trị -->
+        <div id="adminPanel">
+            <h3>QUẢN TRỊ</h3>
+            <input type="password" id="adminPassword" placeholder="Nhập mã quản trị">
+            <button id="adminLogin">Xác nhận</button>
+
+            <div id="adminControls" class="hidden">
+                <label for="startTime">Thời gian bắt đầu khám:</label>
+                <input type="datetime-local" id="startTime">
+                <button id="updateStartTime">Cập nhật</button>
+
+                <label for="blockNumber">Khóa/Mở số:</label>
+                <input type="number" id="blockNumber" min="1" max="45">
+                <button id="toggleBlock">Khóa/Mở</button>
+
+                <label for="blockPhoneNumber">Khóa số điện thoại:</label>
+                <input type="text" id="blockPhoneNumber" placeholder="Nhập số điện thoại" maxlength="10">
+                <button id="togglePhoneBlock">Khóa/Mở</button>
+
+                <button id="exportStats">Xuất thống kê</button>
+
+                <button id="closeAdmin">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const phoneNumberInput = document.getElementById("phoneNumber");
+            const bookButton = document.getElementById("bookButton");
+            const numberGrid = document.getElementById("numberGrid");
+            const successMessage = document.getElementById("successMessage");
+            const successNumberLabel = document.getElementById("successNumberLabel");
+            const successNumber = document.getElementById("successNumber");
+            const successDateTime = document.getElementById("successDateTime");
+            const successPhone = document.getElementById("successPhone");
+            const qrCode = document.getElementById("qrCode");
+
+            const adminPanel = document.getElementById("adminPanel");
+            const adminPassword = document.getElementById("adminPassword");
+            const adminLogin = document.getElementById("adminLogin");
+            const adminControls = document.getElementById("adminControls");
+            const startTimeInput = document.getElementById("startTime");
+            const blockNumberInput = document.getElementById("blockNumber");
+            const toggleBlock = document.getElementById("toggleBlock");
+            const blockPhoneNumber = document.getElementById("blockPhoneNumber");
+            const togglePhoneBlock = document.getElementById("togglePhoneBlock");
+            const exportStats = document.getElementById("exportStats");
+            const closeAdmin = document.getElementById("closeAdmin");
+
+            // Khởi tạo dữ liệu từ localStorage
+            let bookedNumbers = JSON.parse(localStorage.getItem("bookedNumbers")) || {};
+            let blockedNumbers = JSON.parse(localStorage.getItem("blockedNumbers")) || {}; // Lưu trạng thái số bị khóa
+            let blockedPhones = {}; // Số điện thoại bị khóa
+            let startTimeSchedule = JSON.parse(localStorage.getItem("startTimeSchedule")) || {}; // Lịch thời gian bắt đầu khám
+
+            // Hàm lấy ngày hiện tại dạng YYYY-MM-DD
+            function getCurrentDateKey() {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
+            // Reset dữ liệu số thứ tự đã đặt vào lúc 0h01 phút mỗi ngày
+            function resetDailyDataIfNeeded() {
+                const currentDateKey = getCurrentDateKey();
+                const lastResetDate = localStorage.getItem("lastResetDate");
+
+                if (lastResetDate !== currentDateKey) {
+                    // Reset số thứ tự đã đặt
+                    bookedNumbers = {};
+                    localStorage.setItem("bookedNumbers", JSON.stringify(bookedNumbers));
+                    localStorage.setItem("lastResetDate", currentDateKey);
+                }
+            }
+
+            // Tạo bảng số thứ tự
+            function createNumberGrid() {
+                for (let i = 1; i <= 45; i++) {
+                    const div = document.createElement("div");
+                    div.textContent = i;
+                    div.classList.add("number");
+                    div.dataset.number = i;
+
+                    if (blockedNumbers[i]) {
+                        div.classList.add("booked");
+                    } else if (bookedNumbers[i]) {
+                        div.classList.add("booked");
+                    }
+
+                    div.addEventListener("click", () => {
+                        if (!blockedNumbers[i] && !bookedNumbers[i]) {
+                            div.classList.toggle("selected");
+                        }
+                    });
+                    numberGrid.appendChild(div);
+                }
+            }
+
+            // Kiểm tra số điện thoại hợp lệ
+            function validatePhoneNumber(phone) {
+                return /^\d{10}$/.test(phone);
+            }
+
+            // Đếm số lượng số thứ tự đã đặt bởi một số điện thoại
+            function countBookingsByPhone(phone) {
+                return Object.values(bookedNumbers).filter((numberPhone) => numberPhone === phone).length;
+            }
+
+            // Định dạng ngày và giờ
+            function formatDateTime(date) {
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0'); // Tháng bắt đầu từ 0
+                const year = date.getFullYear();
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${day}/${month}/${year} ${hours}:${minutes}`;
+            }
+
+            // Lấy thời gian bắt đầu khám theo lịch
+            function getStartTimeForToday() {
+                const todayKey = getCurrentDateKey();
+                if (startTimeSchedule[todayKey]) {
+                    return new Date(startTimeSchedule[todayKey]);
+                }
+
+                // Mặc định: 18h từ thứ Hai đến thứ Sáu, 16h thứ Bảy và Chủ nhật
+                const defaultHour = [1, 2, 3, 4, 5].includes(new Date().getDay()) ? 18 : 16;
+                const defaultTime = new Date();
+                defaultTime.setHours(defaultHour, 0, 0, 0);
+                return defaultTime;
+            }
+
+            // Đặt số
+            bookButton.addEventListener("click", () => {
+                const phone = phoneNumberInput.value.trim();
+                if (!validatePhoneNumber(phone)) {
+                    alert("Số điện thoại không hợp lệ!");
+                    return;
+                }
+
+                if (blockedPhones[phone]) {
+                    alert("Số điện thoại này đã bị khóa. Vui lòng liên hệ PK RADO.");
+                    return;
+                }
+
+                if (countBookingsByPhone(phone) >= 2) {
+                    alert("Số điện thoại này chỉ được đặt tối đa 2 số thứ tự trong một ngày!");
+                    return;
+                }
+
+                const selectedNumber = Array.from(numberGrid.children).find(
+                    (num) => num.classList.contains("selected")
+                );
+
+                let numberToBook = selectedNumber
+                    ? parseInt(selectedNumber.dataset.number)
+                    : Math.min(...Array.from({ length: 45 }, (_, i) => i + 1).filter((num) => !bookedNumbers[num] && !blockedNumbers[num]));
+
+                if (bookedNumbers[numberToBook] || blockedNumbers[numberToBook]) {
+                    alert("Số này ĐÃ CÓ NGƯỜI ĐẶT. Vui lòng chọn số khác.");
+                    return;
+                }
+
+                bookedNumbers[numberToBook] = phone;
+                localStorage.setItem("bookedNumbers", JSON.stringify(bookedNumbers));
+
+                const bookedDiv = document.querySelector(`[data-number="${numberToBook}"]`);
+                bookedDiv.classList.add("booked");
+                bookedDiv.classList.remove("selected");
+
+                const bookingTime = new Date(getStartTimeForToday().getTime() + (numberToBook - 1) * 4 * 60000);
+                const formattedDateTime = formatDateTime(bookingTime);
+
+                successNumber.textContent = `${numberToBook}`;
+                successDateTime.textContent = `Thời gian khám: ${formattedDateTime}`;
+                successPhone.textContent = phone;
+
+                // Mã hóa số điện thoại và số thứ tự vào mã QR
+                const qrData = `Số thứ tự: ${numberToBook}, Số điện thoại: ${phone}`;
+                qrCode.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}`;
+
+                successMessage.classList.remove("hidden");
+
+                phoneNumberInput.value = "";
+            });
+
+            // Quản trị
+            adminLogin.addEventListener("click", () => {
+                if (adminPassword.value === "A668866") {
+                    adminControls.classList.remove("hidden");
+                } else {
+                    alert("Mã quản trị không đúng!");
+                }
+            });
+
+            updateStartTime.addEventListener("click", () => {
+                const startTimeValue = startTimeInput.value;
+                if (!startTimeValue) {
+                    alert("Vui lòng chọn thời gian bắt đầu!");
+                    return;
+                }
+
+                const parsedDate = new Date(startTimeValue);
+                const key = getCurrentDateKey();
+                startTimeSchedule[key] = parsedDate.toISOString();
+                localStorage.setItem("startTimeSchedule", JSON.stringify(startTimeSchedule));
+                alert("Thời gian bắt đầu đã được cập nhật!");
+            });
+
+            toggleBlock.addEventListener("click", () => {
+                const number = parseInt(blockNumberInput.value);
+                if (blockedNumbers[number]) {
+                    delete blockedNumbers[number];
+                    document.querySelector(`[data-number="${number}"]`).classList.remove("booked");
+                } else {
+                    blockedNumbers[number] = true;
+                    document.querySelector(`[data-number="${number}"]`).classList.add("booked");
+                }
+                localStorage.setItem("blockedNumbers", JSON.stringify(blockedNumbers));
+            });
+
+            togglePhoneBlock.addEventListener("click", () => {
+                const phone = blockPhoneNumber.value.trim();
+                if (!validatePhoneNumber(phone)) {
+                    alert("Số điện thoại không hợp lệ!");
+                    return;
+                }
+
+                if (blockedPhones[phone]) {
+                    delete blockedPhones[phone];
+                    alert(`Số điện thoại ${phone} đã được mở khóa.`);
+                } else {
+                    blockedPhones[phone] = true;
+                    alert(`Số điện thoại ${phone} đã bị khóa.`);
+                }
+            });
+
+            // Xuất thống kê
+            exportStats.addEventListener("click", () => {
+                const todayKey = getCurrentDateKey();
+                const stats = Object.entries(bookedNumbers)
+                    .filter(([number, phone]) => {
+                        const bookingTime = new Date(getStartTimeForToday().getTime() + (parseInt(number) - 1) * 4 * 60000);
+                        const bookingDate = `${bookingTime.getFullYear()}-${String(bookingTime.getMonth() + 1).padStart(2, '0')}-${String(bookingTime.getDate()).padStart(2, '0')}`;
+                        return bookingDate === todayKey;
+                    })
+                    .map(([number, phone]) => {
+                        const bookingTime = new Date(getStartTimeForToday().getTime() + (parseInt(number) - 1) * 4 * 60000);
+                        const formattedDateTime = formatDateTime(bookingTime);
+                        return `Số thứ tự: ${number}, Số điện thoại: ${phone}, Thời gian khám: ${formattedDateTime}`;
+                    })
+                    .join("\n");
+
+                if (!stats) {
+                    alert("Không có dữ liệu thống kê cho ngày hôm nay.");
+                    return;
+                }
+
+                const blob = new Blob([stats], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `thong_ke_${todayKey}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+
+            closeAdmin.addEventListener("click", () => {
+                adminControls.classList.add("hidden");
+                adminPassword.value = "";
+            });
+
+            // Khởi tạo
+            resetDailyDataIfNeeded();
+            createNumberGrid();
+        });
+    </script>
+</body>
+</html>
