@@ -51,9 +51,12 @@
 
         #numberGrid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 10px;
             margin-top: 20px;
+            width: 75%; /* Hẹp chiều ngang còn 3/4 */
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .number {
@@ -120,6 +123,21 @@
         #adminControls {
             margin-top: 10px;
         }
+
+        .time-info {
+            font-size: 0.9em;
+            color: #333;
+            margin-top: 5px;
+            text-align: left;
+            padding-left: 10px;
+        }
+
+        .time-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -144,8 +162,8 @@
             <p class="red-note">Nếu khám 2 bé bạn phải đặt 2 số thứ tự gần nhau</p>
             <p>Số điện thoại: <span id="successPhone"></span></p>
             <p class="red-note">
-                Lưu ý: Đặt số bạn hãy đến đúng thời gian theo số, đến muộn bạn sẽ bạn đợi lâu hơn rất nhiều. 
-                Nếu không đến bạn gọi điện báo cho phòng khám trong khung giờ khám, nếu không báo lần sau bạn bị khóa đặt số online. 
+                Lưu ý: Đặt số bạn hãy đến đúng thời gian theo số, đến muộn bạn sẽ phải đợi lâu hơn rất nhiều. 
+                Nếu không đến phải gọi điện báo cho phòng khám trong khung giờ giám, nếu không báo lần sau bạn bị khóa đặt số online. 
                 THỜI GIAN số khám của bạn có thể có DUNG SAI mong bạn thông cảm.
             </p>
         </div>
@@ -165,8 +183,12 @@
                 <button id="updateStartTime">Cập nhật</button>
 
                 <label for="blockNumber">Khóa/Mở số:</label>
-                <input type="number" id="blockNumber" min="1" max="45">
+                <input type="number" id="blockNumber" min="1" max="65">
                 <button id="toggleBlock">Khóa/Mở</button>
+
+                <label for="deleteNumber">Xóa số đã đặt:</label>
+                <input type="number" id="deleteNumber" min="1" max="65">
+                <button id="deleteBookedNumber">Xóa</button>
 
                 <label for="blockPhoneNumber">Khóa số điện thoại:</label>
                 <input type="text" id="blockPhoneNumber" placeholder="Nhập số điện thoại" maxlength="10">
@@ -198,6 +220,8 @@
             const startTimeInput = document.getElementById("startTime");
             const blockNumberInput = document.getElementById("blockNumber");
             const toggleBlock = document.getElementById("toggleBlock");
+            const deleteNumberInput = document.getElementById("deleteNumber");
+            const deleteBookedNumber = document.getElementById("deleteBookedNumber");
             const blockPhoneNumber = document.getElementById("blockPhoneNumber");
             const togglePhoneBlock = document.getElementById("togglePhoneBlock");
             const exportStats = document.getElementById("exportStats");
@@ -233,7 +257,7 @@
 
             // Tạo bảng số thứ tự
             function createNumberGrid() {
-                for (let i = 1; i <= 45; i++) {
+                for (let i = 1; i <= 65; i++) {
                     const div = document.createElement("div");
                     div.textContent = i;
                     div.classList.add("number");
@@ -251,6 +275,24 @@
                         }
                     });
                     numberGrid.appendChild(div);
+
+                    // Thêm thông báo thời gian khám cho mỗi dòng 4 số
+                    if (i % 4 === 0 || i === 65) {
+                        const timeRow = document.createElement("div");
+                        timeRow.classList.add("time-row");
+
+                        const startNumber = Math.floor((i - 1) / 4) * 4 + 1;
+                        const endNumber = Math.min(startNumber + 3, 65);
+                        const startTime = getBookingTime(startNumber);
+                        const endTime = getBookingTime(endNumber);
+
+                        const timeInfo = document.createElement("div");
+                        timeInfo.classList.add("time-info");
+                        timeInfo.textContent = `Thời gian khám: ${formatDateTime(startTime)} - ${formatDateTime(endTime)}`;
+                        timeRow.appendChild(timeInfo);
+
+                        numberGrid.appendChild(timeRow);
+                    }
                 }
             }
 
@@ -288,6 +330,12 @@
                 return defaultTime;
             }
 
+            // Lấy thời gian khám cho một số thứ tự cụ thể
+            function getBookingTime(number) {
+                const startTime = getStartTimeForToday();
+                return new Date(startTime.getTime() + (number - 1) * 4 * 60000);
+            }
+
             // Đặt số
             bookButton.addEventListener("click", () => {
                 const phone = phoneNumberInput.value.trim();
@@ -297,12 +345,12 @@
                 }
 
                 if (blockedPhones[phone]) {
-                    alert("Số điện thoại này đã bị khóa. Vui lòng liên hệ PK RADO.");
+                    alert("Số điện thoại này đã bị khóa. Vui lòng liên hệ quản trị viên.");
                     return;
                 }
 
                 if (countBookingsByPhone(phone) >= 2) {
-                    alert("Số điện thoại này chỉ được đặt tối đa 2 số thứ tự trong một ngày!");
+                    alert("Mỗi số điện thoại chỉ được đặt tối đa 2 số thứ tự trong một ngày!");
                     return;
                 }
 
@@ -312,10 +360,10 @@
 
                 let numberToBook = selectedNumber
                     ? parseInt(selectedNumber.dataset.number)
-                    : Math.min(...Array.from({ length: 45 }, (_, i) => i + 1).filter((num) => !bookedNumbers[num] && !blockedNumbers[num]));
+                    : Math.min(...Array.from({ length: 65 }, (_, i) => i + 1).filter((num) => !bookedNumbers[num] && !blockedNumbers[num]));
 
                 if (bookedNumbers[numberToBook] || blockedNumbers[numberToBook]) {
-                    alert("Số này ĐÃ CÓ NGƯỜI ĐẶT. Vui lòng chọn số khác.");
+                    alert("Số này đã được đặt hoặc bị khóa. Vui lòng chọn số khác.");
                     return;
                 }
 
@@ -326,7 +374,7 @@
                 bookedDiv.classList.add("booked");
                 bookedDiv.classList.remove("selected");
 
-                const bookingTime = new Date(getStartTimeForToday().getTime() + (numberToBook - 1) * 4 * 60000);
+                const bookingTime = getBookingTime(numberToBook);
                 const formattedDateTime = formatDateTime(bookingTime);
 
                 successNumber.textContent = `${numberToBook}`;
@@ -377,6 +425,19 @@
                 localStorage.setItem("blockedNumbers", JSON.stringify(blockedNumbers));
             });
 
+            deleteBookedNumber.addEventListener("click", () => {
+                const number = parseInt(deleteNumberInput.value);
+                if (bookedNumbers[number]) {
+                    delete bookedNumbers[number];
+                    localStorage.setItem("bookedNumbers", JSON.stringify(bookedNumbers));
+                    const bookedDiv = document.querySelector(`[data-number="${number}"]`);
+                    bookedDiv.classList.remove("booked");
+                    alert(`Số thứ tự ${number} đã được xóa.`);
+                } else {
+                    alert("Số thứ tự này chưa được đặt hoặc không tồn tại.");
+                }
+            });
+
             togglePhoneBlock.addEventListener("click", () => {
                 const phone = blockPhoneNumber.value.trim();
                 if (!validatePhoneNumber(phone)) {
@@ -398,12 +459,12 @@
                 const todayKey = getCurrentDateKey();
                 const stats = Object.entries(bookedNumbers)
                     .filter(([number, phone]) => {
-                        const bookingTime = new Date(getStartTimeForToday().getTime() + (parseInt(number) - 1) * 4 * 60000);
+                        const bookingTime = getBookingTime(parseInt(number));
                         const bookingDate = `${bookingTime.getFullYear()}-${String(bookingTime.getMonth() + 1).padStart(2, '0')}-${String(bookingTime.getDate()).padStart(2, '0')}`;
                         return bookingDate === todayKey;
                     })
                     .map(([number, phone]) => {
-                        const bookingTime = new Date(getStartTimeForToday().getTime() + (parseInt(number) - 1) * 4 * 60000);
+                        const bookingTime = getBookingTime(parseInt(number));
                         const formattedDateTime = formatDateTime(bookingTime);
                         return `Số thứ tự: ${number}, Số điện thoại: ${phone}, Thời gian khám: ${formattedDateTime}`;
                     })
